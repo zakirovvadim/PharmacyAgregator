@@ -14,6 +14,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
 @Service
@@ -27,7 +29,7 @@ public class ParseSclad {
                 .get();
         Elements pages = null;
         int maxPage;
-        if(!doc.getElementsByClass("paginator").isEmpty()) {
+        if (!doc.getElementsByClass("paginator").isEmpty()) {
             pages = doc.getElementsByClass("paginator").get(0).children();
             maxPage = Integer.parseInt(pages.get(pages.size() - 2).child(0).text());
         } else {
@@ -58,6 +60,7 @@ public class ParseSclad {
                     pharm.setProducerPharm(getProducerFromString(s.get(0).text()));
                     pharm.setActiveSubstance(s.get(1).text());
                 }
+                pharm.setType(setType(link));
                 parsedFarm.add(pharm);
             }
         }
@@ -76,5 +79,39 @@ public class ParseSclad {
         String extract = producer.replaceAll("\\s", "");
         String [] devideString = extract.split(":");
         return devideString[1];
+    }
+
+    private int setType(String link) {
+        final String regex = "[\\d]{3}";
+        final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
+        final Matcher matcher = pattern.matcher(link);
+        int number = 0;
+        while (matcher.find()) {
+            number = Integer.parseInt(matcher.group(0));
+        }
+        var result = switch (number) {
+            //лекарства
+            case 179 -> 1;
+            //бады
+            case 388 -> 2;
+            // косметика
+            case 408 -> 3;
+            //медицинские изделия и приборы
+            case 526 -> 4;
+            // гигиена
+            case 472 -> 5;
+            // диетическое и диабетическое питание
+            case 631 -> 6;
+            // мама и малыш
+            case 574 -> 7;
+            // ортопедия
+            case 677 -> 8;
+            // товары для праздников
+            case 716 -> 9;
+            // ветеренария
+            case 666 -> 10;
+            default -> 0;
+        };
+        return result;
     }
 }

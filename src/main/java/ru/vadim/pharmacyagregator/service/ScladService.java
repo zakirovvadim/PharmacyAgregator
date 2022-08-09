@@ -2,9 +2,11 @@ package ru.vadim.pharmacyagregator.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
+import ru.vadim.pharmacyagregator.repository.PharmRepo;
 import ru.vadim.pharmacyagregator.util.ParseSclad;
 
 import java.io.IOException;
@@ -18,7 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ScladService {
     private final ParseSclad parseSclad;
-//    private final PharmRepo pharmRepo;
+    private final PharmRepo pharmRepo;
 
     //@Scheduled(cron = "0 0 0 * * *")
     public void launchScladParsing() {
@@ -36,6 +38,7 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__388/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -46,6 +49,7 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__526/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -56,6 +60,7 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__472/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -66,6 +71,7 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__631/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -76,6 +82,7 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__574/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -86,6 +93,7 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__677/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -96,6 +104,7 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__716/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -106,27 +115,29 @@ public class ScladService {
         String badsLink = "https://apteka74.ru/catalog/__666/";
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
+            updateScheduleData(parsedPharmacies);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
 
     private void updateScheduleData(List<Pharm> parsedPharmacies) {
-        //Map<Long, Pharm> existedPharm = pharmRepo.findAllById(parsedPharmacies.stream().map(Pharm::getId).collect(Collectors.toList()))
-//                .stream()
-//                .collect(Collectors.toMap(Pharm::getId, Function.identity()));
-//        List<Pharm> toUpdate = parsedPharmacies.stream().filter(newElement -> newElement.equals(existedPharm.get(newElement.getId()))).toList();
-        //pharmRepo.saveAll(toUpdate);
+        Map<Long, Pharm> existedPharm = pharmRepo.findAllById(parsedPharmacies.stream().map(Pharm::getId).collect(Collectors.toList()))
+                .stream()
+                .collect(Collectors.toMap(Pharm::getId, Function.identity()));
+        List<Pharm> toUpdate = parsedPharmacies.stream().filter(newElement -> newElement.equals(existedPharm.get(newElement.getId()))).toList();
+        pharmRepo.saveAll(toUpdate);
     }
 
-//    private Pharm update(Pharm pharm) {
-//        return saveData(pharm);
-//    }
-//
-//    private void deleteData(Long id) {
-//        pharmRepo.deleteById(id);
-//    }
-//    private Pharm saveData(Pharm pharmacy) {
-//        return pharmRepo.save(pharmacy);
-//    }
+    private Pharm update(Pharm pharm) {
+        return saveData(pharm);
+    }
+
+    private void deleteData(Long id) {
+        pharmRepo.deleteById(id);
+    }
+
+    private Pharm saveData(Pharm pharmacy) {
+        return pharmRepo.save(pharmacy);
+    }
 }
