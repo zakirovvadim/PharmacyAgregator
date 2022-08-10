@@ -2,8 +2,6 @@ package ru.vadim.pharmacyagregator.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
 import ru.vadim.pharmacyagregator.repository.PharmRepo;
@@ -126,7 +124,7 @@ public class ScladService {
                 .stream()
                 .collect(Collectors.toMap(Pharm::getId, Function.identity()));
         List<Pharm> toUpdate = parsedPharmacies.stream().filter(newElement -> newElement.equals(existedPharm.get(newElement.getId()))).toList();
-        pharmRepo.saveAll(toUpdate);
+        pharmRepo.saveAll(toUpdate.isEmpty() ? parsedPharmacies : toUpdate);
     }
 
     private Pharm update(Pharm pharm) {
