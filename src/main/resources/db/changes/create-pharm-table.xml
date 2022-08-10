@@ -1,0 +1,66 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.6.xsd">
+
+    <changeSet id="create_pharmacy_type_table" author="vzakirov">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="pharmacy_type"/>
+            </not>
+        </preConditions>
+        <createTable tableName="pharmacy_type">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pharmacy_type_id_pkey"/>
+            </column>
+            <column name="number" type="INTEGER"/>
+            <column name="name" type="VARCHAR(100)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="filling_table_pharmacy_type" author="vzakirov">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="pharmacy_type"/>
+            <sqlCheck expectedResult="0">select count(*) from pharmacy_type</sqlCheck>
+        </preConditions>
+        <dropTable  tableName="pharmacy_type"/>
+        <sql>
+            INSERT INTO pharmacy_type
+                (number, name)
+            VALUES (179, 'Лекарства'),
+                   (388, 'Витамины и БАДЫ'),
+                   (408, 'Косметика'),
+                   (526, 'Медицинские изделия и приборы'),
+                   (472, 'Гигиена'),
+                   (631, 'Диетическое и диабетическое питание'),
+                   (574, 'Мама и малыш'),
+                   (677, 'Ортопедия'),
+                   (716, 'Товары для праздников'),
+                   (666, 'Ветеринария');
+        </sql>
+    </changeSet>
+
+    <changeSet id="create_pharm_table" author="vzakirov">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="pharm"/>
+            </not>
+        </preConditions>
+        <createTable tableName="pharm">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pharm_id_pkey"/>
+            </column>
+            <column name="type_id" type="BIGINT"/>
+            <column name="delivery" type="BOOLEAN"/>
+            <column name="title" type="VARCHAR(100)"/>
+            <column name="expiration_date" type="DATE"/>
+            <column name="producer_pharm" type="VARCHAR(200)"/>
+            <column name="active_substance" type="VARCHAR(200)"/>
+            <column name="explanation" type="VARCHAR(1000)"/>
+            <column name="price" type="DECIMAL"/>
+            <column name="old_price" type="DECIMAL"/>
+            <column name="count" type="INTEGER"/>
+            <column name="type" type="INTEGER"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
