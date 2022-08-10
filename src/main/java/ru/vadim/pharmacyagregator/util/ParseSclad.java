@@ -7,6 +7,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
+import ru.vadim.pharmacyagregator.domain.enums.PharmacyType;
+import ru.vadim.pharmacyagregator.repository.exception.NotFoundException;
+import ru.vadim.pharmacyagregator.service.PharmacyTypeService;
 
 
 import java.io.IOException;
@@ -22,8 +25,9 @@ import java.util.regex.Pattern;
 public class ParseSclad {
 
     private static final String PAGE = "?PAGEN_1=";
+    private final PharmacyTypeService pharmacyTypeService;
 
-    public List<Pharm> parse(String link) throws IOException {
+    public List<Pharm> parse(String link) throws IOException, NotFoundException {
         Document doc = Jsoup.connect(link)
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 OPR/89.0.4447.71")
                 .get();
@@ -60,7 +64,7 @@ public class ParseSclad {
                     pharm.setProducerPharm(getProducerFromString(s.get(0).text()));
                     pharm.setActiveSubstance(s.get(1).text());
                 }
-                pharm.setType(setType(link));
+                pharm.setTypeId(pharmacyTypeService.findPharmacyTypeByNumber(setType(link)));
                 parsedFarm.add(pharm);
             }
         }
@@ -112,6 +116,6 @@ public class ParseSclad {
             case 666 -> 10;
             default -> 0;
         };
-        return result;
+        return number;
     }
 }

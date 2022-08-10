@@ -26,7 +26,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(pilullsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -37,7 +37,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -48,7 +48,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -59,7 +59,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -70,7 +70,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -81,7 +81,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -92,7 +92,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -103,7 +103,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
@@ -114,7 +114,7 @@ public class ScladService {
         try {
             List<Pharm> parsedPharmacies = parseSclad.parse(badsLink);
             updateScheduleData(parsedPharmacies);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
