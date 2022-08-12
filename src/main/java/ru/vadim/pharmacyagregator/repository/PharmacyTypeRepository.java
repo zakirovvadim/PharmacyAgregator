@@ -2,7 +2,7 @@ package ru.vadim.pharmacyagregator.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import ru.vadim.pharmacyagregator.domain.enums.PharmacyType;
+import ru.vadim.pharmacyagregator.domain.PharmacyType;
 
 import java.util.Optional;
 

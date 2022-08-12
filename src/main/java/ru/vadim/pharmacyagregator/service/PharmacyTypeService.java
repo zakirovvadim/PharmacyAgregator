@@ -2,7 +2,7 @@ package ru.vadim.pharmacyagregator.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.vadim.pharmacyagregator.domain.enums.PharmacyType;
+import ru.vadim.pharmacyagregator.domain.PharmacyType;
 import ru.vadim.pharmacyagregator.repository.PharmacyTypeRepository;
 import ru.vadim.pharmacyagregator.repository.exception.NotFoundException;
 

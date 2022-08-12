@@ -23,10 +23,8 @@
             <tableExists tableName="pharmacy_type"/>
             <sqlCheck expectedResult="0">select count(*) from pharmacy_type</sqlCheck>
         </preConditions>
-        <dropTable  tableName="pharmacy_type"/>
         <sql>
-            INSERT INTO pharmacy_type
-                (number, name)
+            INSERT INTO pharmacy_type (number, name)
             VALUES (179, 'Лекарства'),
                    (388, 'Витамины и БАДЫ'),
                    (408, 'Косметика'),
@@ -39,7 +37,6 @@
                    (666, 'Ветеринария');
         </sql>
     </changeSet>
-
     <changeSet id="create_pharm_table" author="vzakirov">
         <preConditions onFail="MARK_RAN">
             <not>
@@ -54,12 +51,13 @@
             <column name="delivery" type="BOOLEAN"/>
             <column name="title" type="VARCHAR(100)"/>
             <column name="expiration_date" type="DATE"/>
-            <column name="producer_pharm" type="VARCHAR(200)"/>
-            <column name="active_substance" type="VARCHAR(200)"/>
-            <column name="explanation" type="VARCHAR(1000)"/>
+            <column name="producer_pharm" type="VARCHAR(500)"/>
+            <column name="active_substance" type="VARCHAR(500)"/>
+            <column name="explanation" type="TEXT"/>
             <column name="price" type="DECIMAL"/>
             <column name="old_price" type="DECIMAL"/>
             <column name="count" type="INTEGER"/>
+            <column name="link" type="VARCHAR(250)"/>
             <column name="type" type="INTEGER"/>
         </createTable>
     </changeSet>
