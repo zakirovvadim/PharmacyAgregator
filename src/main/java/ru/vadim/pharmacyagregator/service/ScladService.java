@@ -7,11 +7,7 @@ import ru.vadim.pharmacyagregator.domain.Pharm;
 import ru.vadim.pharmacyagregator.repository.PharmRepo;
 import ru.vadim.pharmacyagregator.util.ParseSclad;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -120,11 +116,7 @@ public class ScladService {
     }
 
     private void updateScheduleData(List<Pharm> parsedPharmacies) {
-        Map<Long, Pharm> existedPharm = pharmRepo.findAllById(parsedPharmacies.stream().map(Pharm::getId).collect(Collectors.toList()))
-                .stream()
-                .collect(Collectors.toMap(Pharm::getId, Function.identity()));
-        List<Pharm> toUpdate = parsedPharmacies.stream().filter(newElement -> newElement.equals(existedPharm.get(newElement.getId()))).toList();
-        pharmRepo.saveAll(toUpdate.isEmpty() ? parsedPharmacies : toUpdate);
+        pharmRepo.saveAll(parsedPharmacies);
     }
 
     private Pharm update(Pharm pharm) {
