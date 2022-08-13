@@ -130,14 +130,15 @@ public class ScladService {
     }
 
     private Pharm update(Pharm pharm) {
-        return saveData(pharm);
+        return savePharm(pharm);
     }
 
-    private void deleteData(Long id) {
+    public void deleteData(Long id) {
         pharmRepo.deleteById(id);
+        log.info("Pharm was delete");
     }
 
-    private Pharm saveData(Pharm pharmacy) {
+    public Pharm savePharm(Pharm pharmacy) {
         return pharmRepo.save(pharmacy);
     }
 }
