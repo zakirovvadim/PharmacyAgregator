@@ -21,7 +21,7 @@ public class PharmFilter implements Serializable {
     Double oldPrice;
     Integer count;
     String link;
-    PharmacyType typeId;
+    Long number;
 
     public void resetFields() {
         this.id = null;
@@ -35,6 +35,6 @@ public class PharmFilter implements Serializable {
         this.oldPrice = null;
         this.count = null;
         this.link = null;
-        this.typeId = null;
+        this.number = null;
     }
 }

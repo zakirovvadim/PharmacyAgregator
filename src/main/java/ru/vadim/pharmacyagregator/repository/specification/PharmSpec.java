@@ -4,6 +4,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import ru.vadim.pharmacyagregator.domain.Pharm;
 import ru.vadim.pharmacyagregator.domain.Pharm_;
+import ru.vadim.pharmacyagregator.domain.PharmacyType_;
 import ru.vadim.pharmacyagregator.domain.dto.filter.PharmFilter;
 
 import javax.persistence.criteria.Order;
@@ -25,6 +26,10 @@ public class PharmSpec {
             if (filter.getLink() != null) {
                 final Predicate link = builder.equal(root.get(Pharm_.link), filter.getLink());
                 predicates.add(link);
+            }
+            if (filter.getNumber() != null) {
+                final Predicate type = builder.equal(root.get(Pharm_.number).get(PharmacyType_.NUMBER), filter.getNumber());
+                predicates.add(type);
             }
             query.orderBy(orderList);
             return builder.and(predicates.toArray(new Predicate[0]));

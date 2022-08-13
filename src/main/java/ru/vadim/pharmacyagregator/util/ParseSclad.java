@@ -64,7 +64,7 @@ public class ParseSclad {
                     pharm.setProducerPharm(getProducerFromString(extractedText.get(0).text()));
                     pharm.setActiveSubstance(extractedText.get(1).text());
                 }
-                pharm.setTypeId(pharmacyTypeService.findPharmacyTypeByNumber(setType(link)));
+                pharm.setNumber(pharmacyTypeService.findPharmacyTypeByNumber(setType(link)));
                 geFullInformationByProduct(pharm, pharm.getLink());
                 parsedFarm.add(pharm);
             }

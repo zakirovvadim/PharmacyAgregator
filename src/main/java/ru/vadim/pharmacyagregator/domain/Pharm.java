@@ -28,5 +28,5 @@ public class Pharm {
     String link;
     @ManyToOne()
     @JoinColumn(name = "type_id", referencedColumnName = "id", updatable = false)
-    PharmacyType typeId;
+    PharmacyType number;
 }
