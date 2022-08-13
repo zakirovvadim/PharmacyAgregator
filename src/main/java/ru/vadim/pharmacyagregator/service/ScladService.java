@@ -2,9 +2,14 @@ package ru.vadim.pharmacyagregator.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
+import ru.vadim.pharmacyagregator.domain.dto.filter.PharmFilter;
 import ru.vadim.pharmacyagregator.repository.PharmRepo;
+import ru.vadim.pharmacyagregator.repository.specification.PharmSpec;
 import ru.vadim.pharmacyagregator.util.ParseSclad;
 
 import java.util.List;
@@ -15,6 +20,11 @@ import java.util.List;
 public class ScladService {
     private final ParseSclad parseSclad;
     private final PharmRepo pharmRepo;
+
+    public Page<Pharm> search(PharmFilter pharmFilter, Pageable pageable) {
+        Specification<Pharm> specification = PharmSpec.withFilter(pharmFilter, pageable);
+        return pharmRepo.findAll(specification, pageable);
+    }
 
     //@Scheduled(cron = "0 0 0 * * *")
     public void launchScladParsing() {
