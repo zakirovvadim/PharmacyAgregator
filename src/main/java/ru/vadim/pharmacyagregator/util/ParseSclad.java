@@ -7,7 +7,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
-import ru.vadim.pharmacyagregator.domain.enums.PharmacyType;
 import ru.vadim.pharmacyagregator.repository.exception.NotFoundException;
 import ru.vadim.pharmacyagregator.service.PharmacyTypeService;
 
@@ -51,24 +50,34 @@ public class ParseSclad {
                 Pharm pharm = new Pharm();
                 assert child.parentNode() != null;
                 pharm.setId(Long.parseLong(child.parentNode().attr("data-element-id")));
-                Elements s1 = child.select("div.cat-item__title");
-                pharm.setTitle(s1.get(0).text());
-                Elements s = child.select("div.cat-item__text");
-                if(s.size() == 3) {
-                    pharm.setExpirationDate(getExpirationDateFromString(s.get(0).text()));
-                    pharm.setProducerPharm(getProducerFromString(s.get(1).text()));
-                    pharm.setActiveSubstance(s.get(2).text());
+                pharm.setLink("https://apteka74.ru" + child.children().attr("href"));
+                Elements extractedTitle = child.select("div.cat-item__title");
+                pharm.setTitle(extractedTitle.get(0).text());
+                Elements extractedText = child.select("div.cat-item__text");
+                if(extractedText.size() == 3) {
+                    pharm.setExpirationDate(getExpirationDateFromString(extractedText.get(0).text()));
+                    pharm.setProducerPharm(getProducerFromString(extractedText.get(1).text()));
+                    pharm.setActiveSubstance(extractedText.get(2).text());
                 }
-                if(s.size() == 2) {
+                if(extractedText.size() == 2) {
                     pharm.setExpirationDate(null);
-                    pharm.setProducerPharm(getProducerFromString(s.get(0).text()));
-                    pharm.setActiveSubstance(s.get(1).text());
+                    pharm.setProducerPharm(getProducerFromString(extractedText.get(0).text()));
+                    pharm.setActiveSubstance(extractedText.get(1).text());
                 }
-                pharm.setTypeId(pharmacyTypeService.findPharmacyTypeByNumber(setType(link)));
+                pharm.setNumber(pharmacyTypeService.findPharmacyTypeByNumber(setType(link)));
+                geFullInformationByProduct(pharm, pharm.getLink());
                 parsedFarm.add(pharm);
             }
         }
         return parsedFarm;
+    }
+
+    private void geFullInformationByProduct(Pharm pharm, String link) throws IOException {
+        Document doc = Jsoup.connect(link)
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 OPR/89.0.4447.71")
+                .get();
+        String explanation = doc.getElementsByClass("accordion__item-bot").text();
+        pharm.setExplanation(explanation);
     }
 
     private LocalDate getExpirationDateFromString(String date) {

@@ -2,16 +2,17 @@ package ru.vadim.pharmacyagregator.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
+import ru.vadim.pharmacyagregator.domain.dto.filter.PharmFilter;
 import ru.vadim.pharmacyagregator.repository.PharmRepo;
+import ru.vadim.pharmacyagregator.repository.specification.PharmSpec;
 import ru.vadim.pharmacyagregator.util.ParseSclad;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -19,6 +20,11 @@ import java.util.stream.Collectors;
 public class ScladService {
     private final ParseSclad parseSclad;
     private final PharmRepo pharmRepo;
+
+    public Page<Pharm> search(PharmFilter pharmFilter, Pageable pageable) {
+        Specification<Pharm> specification = PharmSpec.withFilter(pharmFilter, pageable);
+        return pharmRepo.findAll(specification, pageable);
+    }
 
     //@Scheduled(cron = "0 0 0 * * *")
     public void launchScladParsing() {
@@ -120,22 +126,19 @@ public class ScladService {
     }
 
     private void updateScheduleData(List<Pharm> parsedPharmacies) {
-        Map<Long, Pharm> existedPharm = pharmRepo.findAllById(parsedPharmacies.stream().map(Pharm::getId).collect(Collectors.toList()))
-                .stream()
-                .collect(Collectors.toMap(Pharm::getId, Function.identity()));
-        List<Pharm> toUpdate = parsedPharmacies.stream().filter(newElement -> newElement.equals(existedPharm.get(newElement.getId()))).toList();
-        pharmRepo.saveAll(toUpdate.isEmpty() ? parsedPharmacies : toUpdate);
+        pharmRepo.saveAll(parsedPharmacies);
     }
 
     private Pharm update(Pharm pharm) {
-        return saveData(pharm);
+        return savePharm(pharm);
     }
 
-    private void deleteData(Long id) {
+    public void deleteData(Long id) {
         pharmRepo.deleteById(id);
+        log.info("Pharm was delete");
     }
 
-    private Pharm saveData(Pharm pharmacy) {
+    public Pharm savePharm(Pharm pharmacy) {
         return pharmRepo.save(pharmacy);
     }
 }

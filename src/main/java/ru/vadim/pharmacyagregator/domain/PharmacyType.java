@@ -1,4 +1,4 @@
-package ru.vadim.pharmacyagregator.domain.enums;
+package ru.vadim.pharmacyagregator.domain;
 
 import lombok.AccessLevel;
 import lombok.Data;

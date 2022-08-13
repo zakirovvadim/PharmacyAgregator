@@ -3,9 +3,11 @@ package ru.vadim.pharmacyagregator.domain;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-import ru.vadim.pharmacyagregator.domain.enums.PharmacyType;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import java.time.LocalDate;
 
 @Entity
@@ -13,7 +15,6 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Pharm {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     Boolean delivery;
     String title;
@@ -24,7 +25,8 @@ public class Pharm {
     Double price;
     Double oldPrice;
     Integer count;
+    String link;
     @ManyToOne()
     @JoinColumn(name = "type_id", referencedColumnName = "id", updatable = false)
-    PharmacyType typeId;
+    PharmacyType number;
 }
