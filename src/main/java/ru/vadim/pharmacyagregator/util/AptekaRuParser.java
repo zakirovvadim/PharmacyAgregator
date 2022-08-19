@@ -2,48 +2,94 @@ package ru.vadim.pharmacyagregator.util;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 import lombok.Data;
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.remote.DesiredCapabilities;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 
-import javax.print.Doc;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Data
 @Service
 public class AptekaRuParser {
 
+    public void parse(String link) throws IOException {
+        Document doc = seleniumParse(link);
+        Elements el = doc.select("div.SidebarCategoriesList > ul");
+        Map<String, String> test = null;
+        for (Element element : el.get(0).children()) {
+            test = parseEveryCatalog1("https://apteka.ru" + element.child(0).attr("href"), "div.ViewRootCategory__subcat");
+        }
+        System.out.println(test.values());
+        
+        
+        Map<String, String> catalog = parseEveryCatalog1(link,"div.SidebarCategoriesList > ul");
+        Map<String, String> innerCatalog;
+        for (Map.Entry<String, String> catalogElement : catalog.entrySet()) {
+            innerCatalog = parseEveryCatalog1(catalogElement.getValue(), "div.ViewRootCategory__subcat");
+        }
+
+    }
+
+    public Map<String, String> parseEveryCatalog1(String link, String query) throws IOException {
+        Document doc = getDoc(link);
+        Elements innerCatalog = doc.select(query).get(0).children();
+        Map<String, String> nameAndPath = new HashMap<>();
+        for (Element groups : innerCatalog) {
+            String name = groups.text();
+            String categoryLink = "https://apteka.ru" + groups.attr("href");
+            nameAndPath.put(name, categoryLink);
+            getProduct(categoryLink);
+        }
+        return nameAndPath;
+    }
+
+    public void getProduct(String link) throws IOException {
+        Document doc = getDoc(link);
+        Elements productElements = doc.getElementsByClass("catalog-card card-flex");
+        List<Pair<String, String>> namesAndLinks = new ArrayList<>();
+        if (!productElements.isEmpty()) {
+            for (Element productInList : productElements) {
+                namesAndLinks.add(getNameAndHref(productInList.child(0), "catalog-card__name emphasis"));
+            }
+        }
+    }
+
+    private Pair<String, String> getNameAndHref(Element element, String clas) {
+        String name;
+        if (clas != null) {
+            name = element.getElementsByClass(clas).text();
+        } else name = element.text();
+        String link = "https://apteka.ru" + element.attr("href");
+        return Pair.of(name, link);
+    }
+
     public Document seleniumParse(String link) {
         WebDriverManager.chromedriver().arch64().setup();
         ChromeOptions chromeOptions = new ChromeOptions();
-        chromeOptions.addArguments("--disable-popup-blocking");
-        chromeOptions.addArguments("disable-infobars");
         WebDriver webDriver = new ChromeDriver(chromeOptions);
         webDriver.get(link);
-        WebElement goods = webDriver.findElement(By.xpath("//*[@id=\"app\"]/div[2]/div[1]/div/div/div/div[1]/div[1]/button[2]"));
-        goods.click();
+        webDriver.findElement(By.className("overlay-close")).click();
+        webDriver.findElement(By.className("ButtonIcon-icon")).click();
+        webDriver.findElement(By.className("SidebarCatalog__tabs")).click();
         Document document = Jsoup.parse(webDriver.getPageSource());
+        webDriver.close();
         return document;
     }
 
-    public void parse(String link) throws IOException {
-        Document doc = seleniumParse(link);
-        Elements catalogElements = doc.select("div.SidebarCategoriesList > ul").get(0).children();
-        for (Element groups : catalogElements) {
-            Elements group = groups.children();
-            String categoryLink = "https://apteka.ru" + group.get(0).attr("href");
-            String name = group.get(0).children().text();
-            System.out.println(categoryLink);
-            System.out.println(name);
-        }
+    private Document getDoc(String link) throws IOException {
+        return Jsoup.connect(link)
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 OPR/89.0.4447.71")
+                .get();
     }
 }
