@@ -12,6 +12,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
+import ru.vadim.pharmacyagregator.domain.Pharm;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,6 +23,8 @@ import java.util.Map;
 @Data
 @Service
 public class AptekaRuParser {
+
+    private static final String PAGE = "?page=";
 
     public void parse(String link) throws IOException {
         Document doc = seleniumParse(link);
@@ -45,24 +48,33 @@ public class AptekaRuParser {
         Document doc = getDoc(link);
         Elements innerCatalog = doc.select(query).get(0).children();
         Map<String, String> nameAndPath = new HashMap<>();
+        Map<String, List<Pair<String, String>>> categoryAndProductPath = new HashMap<>();
         for (Element groups : innerCatalog) {
             String name = groups.text();
             String categoryLink = "https://apteka.ru" + groups.attr("href");
             nameAndPath.put(name, categoryLink);
-            getProduct(categoryLink);
+            categoryAndProductPath.put(name, getProducts(categoryLink));
         }
         return nameAndPath;
     }
 
-    public void getProduct(String link) throws IOException {
-        Document doc = getDoc(link);
-        Elements productElements = doc.getElementsByClass("catalog-card card-flex");
-        List<Pair<String, String>> namesAndLinks = new ArrayList<>();
-        if (!productElements.isEmpty()) {
-            for (Element productInList : productElements) {
-                namesAndLinks.add(getNameAndHref(productInList.child(0), "catalog-card__name emphasis"));
+    public List<Pair<String, String>> getProducts(String link) throws IOException {
+        int i = 1;
+        Elements productElements;
+        List<Pair<String, String>> namesAndLinks = new ArrayList<>();;
+        do {
+            Document doc = getDoc(link + PAGE + i);
+            productElements = doc.getElementsByClass("catalog-card card-flex");
+            i++;
+            if (!productElements.isEmpty()) {
+                for (Element productInList : productElements) {
+                    namesAndLinks.add(getNameAndHref(productInList.child(0), "catalog-card__name emphasis"));
+                }
             }
         }
+        while (!productElements.isEmpty());
+        System.out.println(namesAndLinks.size());
+        return namesAndLinks;
     }
 
     private Pair<String, String> getNameAndHref(Element element, String clas) {
