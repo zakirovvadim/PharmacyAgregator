@@ -53,6 +53,7 @@ public class AptekaRuParser {
             String name = groups.text();
             String categoryLink = "https://apteka.ru" + groups.attr("href");
             nameAndPath.put(name, categoryLink);
+            System.out.println(name + " " + categoryLink);
             categoryAndProductPath.put(name, getProducts(categoryLink));
         }
         return nameAndPath;
@@ -83,7 +84,21 @@ public class AptekaRuParser {
             name = element.getElementsByClass(clas).text();
         } else name = element.text();
         String link = "https://apteka.ru" + element.attr("href");
+        System.out.println(name + " " + link);
         return Pair.of(name, link);
+    }
+
+    public Pharm getProduct(String link) throws IOException {
+        Pharm pharm = new Pharm();
+        Document document = getDoc(link);
+        Elements elements = document.getElementsByClass("ViewProductPage").get(0).children();
+        pharm.setTitle(document.select("h1[itemprop=name]").text());
+        pharm.setActiveSubstance(document.getElementsByClass("ux-commas").get(0).children().get(0).text());
+        pharm.setProducerPharm(document.getElementsByClass("ProdDescList").get(0).children().get(1).children().get(3).text());
+//        String a = document.select("span.moneyprice__content").text();
+//        String b = document.getElementsByClass("div.ProductOffer__price").text();
+
+        return new Pharm();
     }
 
     public Document seleniumParse(String link) {
