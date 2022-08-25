@@ -15,6 +15,9 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
+import ru.vadim.pharmacyagregator.domain.PharmacyType;
+import ru.vadim.pharmacyagregator.repository.exception.NotFoundException;
+import ru.vadim.pharmacyagregator.service.PharmacyTypeService;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,29 +33,24 @@ import java.util.regex.Pattern;
 public class AptekaRuParser {
 
     private static final String PAGE = "?page=";
+    private final PharmacyTypeService pharmacyTypeService;
 
-    public void parse(String link) throws IOException {
+    public void parse(String link) throws IOException, InterruptedException, NotFoundException {
         Document doc = seleniumParse(link);
         Elements el = doc.select("div.SidebarCategoriesList > ul");
-        Map<String, String> test = null;
+       List<Pharm> parsedPharm = null;
         for (Element element : el.get(0).children()) {
-            test = parseEveryCatalog1("https://apteka.ru" + element.child(0).attr("href"), "div.ViewRootCategory__subcat");
+            parsedPharm = parseEveryCatalog1("https://apteka.ru" + element.child(0).attr("href"), "div.ViewRootCategory__subcat");
         }
-        System.out.println(test.values());
-
-
-        Map<String, String> catalog = parseEveryCatalog1(link,"div.SidebarCategoriesList > ul");
-        Map<String, String> innerCatalog;
-        for (Map.Entry<String, String> catalogElement : catalog.entrySet()) {
-            innerCatalog = parseEveryCatalog1(catalogElement.getValue(), "div.ViewRootCategory__subcat");
-        }
-
+        System.out.println(parsedPharm);
     }
 
-    public Map<String, String> parseEveryCatalog1(String link, String query) throws IOException {
+    public List<Pharm> parseEveryCatalog1(String link, String query) throws IOException, NotFoundException {
         Document doc = getDoc(link);
+        PharmacyType currentType = pharmacyTypeService.findById(getTypeNumber(link));
         Elements innerCatalog = doc.select(query).get(0).children();
         Map<String, String> nameAndPath = new HashMap<>();
+        List<Pharm> parsedPharms = new ArrayList<>();
         Map<String, List<Pair<String, String>>> categoryAndProductPath = new HashMap<>();
         for (Element groups : innerCatalog) {
             String name = groups.text();
@@ -61,7 +59,39 @@ public class AptekaRuParser {
             System.out.println(name + " " + categoryLink);
             categoryAndProductPath.put(name, getProducts(categoryLink));
         }
-        return nameAndPath;
+        for (Map.Entry<String, List<Pair<String, String>>> element : categoryAndProductPath.entrySet()) {
+            for (Pair<String, String> product : element.getValue()) {
+                Pharm pharm = getProduct(product.getSecond());
+                pharm.setNumber(currentType);
+                parsedPharms.add(pharm);
+            }
+        }
+        return parsedPharms;
+    }
+
+    private long getTypeNumber(String link) {
+        String category = StringUtils.substring(link, 22, link.length() - 1);
+        return switch (category) {
+            //лекарства
+            case "leka" -> 1;
+            //бады
+            case "biol" -> 2;
+            //медицинские изделия и приборы
+            case "medi" -> 4;
+            //медицинские изделия и приборы
+            case "mib" -> 4;
+            // мама и малыш
+            case "dets" -> 7;
+            // диетическое и диабетическое питание
+            case "diet" -> 6;
+            // гигиена
+            case "gigi" -> 5;
+            // дезинфекция
+            case "dezi" -> 5;
+            // товары для праздников
+            case "mil" -> 4;
+            default -> 0;
+        };
     }
 
     public List<Pair<String, String>> getProducts(String link) throws IOException {
@@ -93,23 +123,29 @@ public class AptekaRuParser {
         return Pair.of(name, link);
     }
 
-    public Pharm getProduct(String link) throws IOException, InterruptedException {
+    public Pharm getProduct(String link)  {
         Pharm pharm = new Pharm();
         Document document = getDoc(link);
-        Elements elements = document.getElementsByClass("ViewProductPage").get(0).children();
         pharm.setTitle(document.select("h1[itemprop=name]").text());
         pharm.setActiveSubstance(document.getElementsByClass("ux-commas").get(0).children().get(0).text());
         pharm.setProducerPharm(document.getElementsByClass("ProdDescList").get(0).children().get(1).children().get(3).text());
-        pharm.setPrice(getPrice(link));
-        return new Pharm();
+        try {
+            pharm.setPrice(getPrice(link));
+        } catch (InterruptedException e) {
+            log.error(e.getMessage());
+            throw new RuntimeException("Something wrong with parse price: " + e.getMessage());
+        }
+        pharm.setLink(link);
+        return pharm;
     }
 
-    public Document seleniumParse(String link) {
+    public Document seleniumParse(String link) throws InterruptedException {
         WebDriverManager.chromedriver().arch64().setup();
         ChromeOptions chromeOptions = new ChromeOptions();
         WebDriver webDriver = new ChromeDriver(chromeOptions);
         webDriver.get(link);
         webDriver.findElement(By.xpath("//*[@id=\"search-city\"]")).sendKeys("Учалы");
+        Thread.sleep(900);
         webDriver.findElement(By.className("TownSelector__options")).getCssValue("Учалы");
         webDriver.findElement(By.className("overlay-close")).click();
         webDriver.findElement(By.className("ButtonIcon-icon")).click();
@@ -119,10 +155,15 @@ public class AptekaRuParser {
         return document;
     }
 
-    private Document getDoc(String link) throws IOException {
-        return Jsoup.connect(link)
-                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 OPR/89.0.4447.71")
-                .get();
+    private Document getDoc(String link) {
+        try {
+            return Jsoup.connect(link)
+                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 OPR/89.0.4447.71")
+                    .get();
+        } catch (IOException e) {
+            log.debug(e.getMessage());
+            throw new RuntimeException("Something wrong with parsing: " + e.getMessage());
+        }
     }
 
     private double getPrice(String link) throws InterruptedException {
