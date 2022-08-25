@@ -15,4 +15,8 @@ public class PharmacyTypeService {
     public PharmacyType findPharmacyTypeByNumber(Integer number) throws NotFoundException {
         return typeRepository.findByNumber(number).orElseThrow(() -> new NotFoundException(number));
     }
+
+    public PharmacyType findById(Long id) throws NotFoundException {
+        return typeRepository.findById(id).orElseThrow(() -> new NotFoundException(id));
+    }
 }
