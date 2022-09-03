@@ -44,7 +44,7 @@
             </not>
         </preConditions>
         <createTable tableName="pharm">
-            <column autoIncrement="true" name="id" type="BIGINT">
+            <column autoIncrement="false" name="id" type="VARCHAR(25)">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="pharm_id_pkey"/>
             </column>
             <column name="type_id" type="BIGINT"/>

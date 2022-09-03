@@ -49,7 +49,7 @@ public class ParseSclad {
             for(Element child : itemElements) {
                 Pharm pharm = new Pharm();
                 assert child.parentNode() != null;
-                pharm.setId(Long.parseLong(child.parentNode().attr("data-element-id")));
+                pharm.setId(child.parentNode().attr("data-element-id"));
                 pharm.setLink("https://apteka74.ru" + child.children().attr("href"));
                 Elements extractedTitle = child.select("div.cat-item__title");
                 pharm.setTitle(extractedTitle.get(0).text());

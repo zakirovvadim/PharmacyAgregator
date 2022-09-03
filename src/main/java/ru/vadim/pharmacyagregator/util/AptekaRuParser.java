@@ -3,15 +3,21 @@ package ru.vadim.pharmacyagregator.util;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.util.json.JSONParser;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import ru.vadim.pharmacyagregator.domain.Pharm;
@@ -19,7 +25,15 @@ import ru.vadim.pharmacyagregator.domain.PharmacyType;
 import ru.vadim.pharmacyagregator.repository.exception.NotFoundException;
 import ru.vadim.pharmacyagregator.service.PharmacyTypeService;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,12 +41,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.bouncycastle.util.io.Streams.readAll;
+
 @Slf4j
 @Data
 @Service
 public class AptekaRuParser {
 
     private static final String PAGE = "?page=";
+
     private final PharmacyTypeService pharmacyTypeService;
 
     public void parse(String link) throws IOException, InterruptedException, NotFoundException {
@@ -123,29 +140,31 @@ public class AptekaRuParser {
         return Pair.of(name, link);
     }
 
-    public Pharm getProduct(String link)  {
+    public Pharm getProduct(String link) throws IOException {
+        String id = link.substring(link.lastIndexOf('-') + 1, link.lastIndexOf('/'));
+        String l = "https://api.apteka.ru/Item/Info?id=";
+        String json = IOUtils.toString(URI.create(l + id), Charset.forName("UTF-8"));
+        JSONObject jsonOb = new JSONObject(json);
         Pharm pharm = new Pharm();
         Document document = getDoc(link);
-        pharm.setTitle(document.select("h1[itemprop=name]").text());
+        pharm.setId(jsonOb.getString("id"));
+        pharm.setTitle(jsonOb.getString("name"));
         pharm.setActiveSubstance(document.getElementsByClass("ux-commas").get(0).children().get(0).text());
-        pharm.setProducerPharm(document.getElementsByClass("ProdDescList").get(0).children().get(1).children().get(3).text());
-        try {
-            pharm.setPrice(getPrice(link));
-        } catch (InterruptedException e) {
-            log.error(e.getMessage());
-            throw new RuntimeException("Something wrong with parse price: " + e.getMessage());
-        }
+        pharm.setProducerPharm(jsonOb.getString("vendor"));
+        pharm.setPrice(getPrice(link));
         pharm.setLink(link);
         return pharm;
     }
 
-    public Document seleniumParse(String link) throws InterruptedException {
+    public Document seleniumParse(String link) throws InterruptedException, IOException {
+        String city = "Учалы";
         WebDriverManager.chromedriver().arch64().setup();
         ChromeOptions chromeOptions = new ChromeOptions();
         WebDriver webDriver = new ChromeDriver(chromeOptions);
         webDriver.get(link);
-        webDriver.findElement(By.xpath("//*[@id=\"search-city\"]")).sendKeys("Учалы");
-        Thread.sleep(900);
+        webDriver.findElement(By.xpath("//*[@id=\"search-city\"]")).sendKeys(city);
+        (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.xpath(String.format("//strong[starts-with(text(), '%s')]", city))));
         webDriver.findElement(By.className("TownSelector__options")).getCssValue("Учалы");
         webDriver.findElement(By.className("overlay-close")).click();
         webDriver.findElement(By.className("ButtonIcon-icon")).click();
@@ -166,16 +185,21 @@ public class AptekaRuParser {
         }
     }
 
-    private double getPrice(String link) throws InterruptedException {
+    public double getPrice(String link) {
+        String city = "Учалы";
         WebDriverManager.chromedriver().arch64().setup();
         ChromeOptions chromeOptions = new ChromeOptions();
         WebDriver webDriver = new ChromeDriver(chromeOptions);
         webDriver.get(link);
-        webDriver.findElement(By.xpath("//*[@id=\"search-city\"]")).sendKeys("Учалы");
-        Thread.sleep(1000);
-        Document d = Jsoup.parse(webDriver.getPageSource());
-        webDriver.findElement(By.xpath(String.format("//*[@id=\"app\"]/div[5]/div/div[3]/div/div[1]/div[2]/div/div/div/div/ol/li[%s]", getCityXPathIndex(d, "Учалы")))).click();
-        Thread.sleep(1000);
+        webDriver.findElement(By.xpath("//*[@id=\"search-city\"]")).sendKeys(city);
+        WebElement afterClick = (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.xpath(String.format("//strong[starts-with(text(), '%s')]", city))));
+        afterClick.click();
+        WebElement x = (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div[@class= 'ViewProductPage__title']")));
+        WebElement x2 = (new WebDriverWait(webDriver, Duration.ofSeconds(5)))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"app\"]/div[5]")));
+        System.out.println(x2.getText());
         Document document = Jsoup.parse(webDriver.getPageSource());
         webDriver.close();
         Elements productOffer__price = document.getElementsByClass("ProductOffer__price");
@@ -189,7 +213,7 @@ public class AptekaRuParser {
         return 0.0;
     }
 
-    private int getCityXPathIndex(Document document, String chosenCity) throws InterruptedException {
+    private int getCityXPathIndex(Document document, String chosenCity) {
         Elements cities = document.getElementsByClass("TownSelector__options").get(0).children();
         int cityIndex  = 0;
         for (Element elementCity : cities) {
@@ -207,4 +231,5 @@ public class AptekaRuParser {
         }
         return cityIndex;
     }
+
 }
