@@ -153,6 +153,8 @@ public class AptekaRuParser {
         pharm.setProducerPharm(jsonOb.getString("vendor"));
         pharm.setPrice(getPrice(link));
         pharm.setLink(link);
+        pharm.setExplanation(jsonOb.getString("pharmDyn"));
+        pharm.setDelivery(isDelivered(document));
         return pharm;
     }
 
@@ -162,8 +164,10 @@ public class AptekaRuParser {
         ChromeOptions chromeOptions = new ChromeOptions();
         WebDriver webDriver = new ChromeDriver(chromeOptions);
         webDriver.get(link);
+        (new WebDriverWait(webDriver, Duration.ofSeconds(5)))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.className("TownSelector__input")));
         webDriver.findElement(By.xpath("//*[@id=\"search-city\"]")).sendKeys(city);
-        (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
+        (new WebDriverWait(webDriver, Duration.ofSeconds(5)))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.xpath(String.format("//strong[starts-with(text(), '%s')]", city))));
         webDriver.findElement(By.className("TownSelector__options")).getCssValue("Учалы");
         webDriver.findElement(By.className("overlay-close")).click();
@@ -195,11 +199,8 @@ public class AptekaRuParser {
         WebElement afterClick = (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.xpath(String.format("//strong[starts-with(text(), '%s')]", city))));
         afterClick.click();
-        WebElement x = (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
-                .until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div[@class= 'ViewProductPage__title']")));
-        WebElement x2 = (new WebDriverWait(webDriver, Duration.ofSeconds(5)))
-                .until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"app\"]/div[5]")));
-        System.out.println(x2.getText());
+        (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.className("NotifyCitychange")));
         Document document = Jsoup.parse(webDriver.getPageSource());
         webDriver.close();
         Elements productOffer__price = document.getElementsByClass("ProductOffer__price");
@@ -230,6 +231,10 @@ public class AptekaRuParser {
             }
         }
         return cityIndex;
+    }
+
+    private boolean isDelivered(Document page) {
+        return !page.getElementsByClass("icon icon--delivery").isEmpty();
     }
 
 }
