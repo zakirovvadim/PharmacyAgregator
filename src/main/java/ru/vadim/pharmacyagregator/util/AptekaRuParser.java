@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tomcat.util.json.JSONParser;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -25,13 +25,8 @@ import ru.vadim.pharmacyagregator.domain.PharmacyType;
 import ru.vadim.pharmacyagregator.repository.exception.NotFoundException;
 import ru.vadim.pharmacyagregator.service.PharmacyTypeService;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -40,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.bouncycastle.util.io.Streams.readAll;
 
 @Slf4j
 @Data
@@ -59,7 +52,7 @@ public class AptekaRuParser {
         for (Element element : el.get(0).children()) {
             parsedPharm = parseEveryCatalog1("https://apteka.ru" + element.child(0).attr("href"), "div.ViewRootCategory__subcat");
         }
-        System.out.println(parsedPharm);
+        //System.out.println(parsedPharm);
     }
 
     public List<Pharm> parseEveryCatalog1(String link, String query) throws IOException, NotFoundException {
@@ -73,14 +66,15 @@ public class AptekaRuParser {
             String name = groups.text();
             String categoryLink = "https://apteka.ru" + groups.attr("href");
             nameAndPath.put(name, categoryLink);
-            System.out.println(name + " " + categoryLink);
+            //System.out.println(name + " " + categoryLink);
             categoryAndProductPath.put(name, getProducts(categoryLink));
         }
         for (Map.Entry<String, List<Pair<String, String>>> element : categoryAndProductPath.entrySet()) {
             for (Pair<String, String> product : element.getValue()) {
-                Pharm pharm = getProduct(product.getSecond());
-                pharm.setNumber(currentType);
-                parsedPharms.add(pharm);
+                for (Pharm ph : getProduct(product.getSecond())) {
+                    ph.setNumber(currentType);
+                    parsedPharms.add(ph);
+                }
             }
         }
         return parsedPharms;
@@ -140,22 +134,64 @@ public class AptekaRuParser {
         return Pair.of(name, link);
     }
 
-    public Pharm getProduct(String link) throws IOException {
-        String id = link.substring(link.lastIndexOf('-') + 1, link.lastIndexOf('/'));
-        String l = "https://api.apteka.ru/Item/Info?id=";
-        String json = IOUtils.toString(URI.create(l + id), Charset.forName("UTF-8"));
+    public List<Pharm> getProduct(String link) throws IOException {
+        String id;
+        String city = "uchaly";
+        if (link.contains("-")) {
+            id = link.substring(link.lastIndexOf('-') + 1, link.lastIndexOf('/'));
+        } else {
+            String[] splittedPath = link.split("/");
+            id = splittedPath[splittedPath.length - 1];
+        }
+        String linkToProduct = "https://api.apteka.ru/Item/Info?id=";
+        String cityRequest = String.format("&cityUrl=%s", city);
+        String jsonFileProduct = IOUtils.toString(URI.create(linkToProduct + id + cityRequest), Charset.forName("UTF-8"));
+        List<Pharm> pharms = new ArrayList<>();
+        if (!jsonFileProduct.isEmpty()) {
+            pharms.add(setSinglePharm(jsonFileProduct, link));
+        } else {
+//            linkToProduct = "https://api.apteka.ru/Item/GroupInfo?itemGroupId=";
+//            jsonFileProduct = IOUtils.toString(URI.create(linkToProduct + id + cityRequest), Charset.forName("UTF-8"));
+//            pharms = setGroupPharm(jsonFileProduct, link);
+        }
+        return pharms;
+    }
+
+    private Pharm setSinglePharm(String json, String link) {
         JSONObject jsonOb = new JSONObject(json);
         Pharm pharm = new Pharm();
         Document document = getDoc(link);
         pharm.setId(jsonOb.getString("id"));
         pharm.setTitle(jsonOb.getString("name"));
-        pharm.setActiveSubstance(document.getElementsByClass("ux-commas").get(0).children().get(0).text());
+        pharm.setActiveSubstance(jsonOb.getString("struct"));
         pharm.setProducerPharm(jsonOb.getString("vendor"));
         pharm.setPrice(getPrice(link));
         pharm.setLink(link);
         pharm.setExplanation(jsonOb.getString("pharmDyn"));
         pharm.setDelivery(isDelivered(document));
         return pharm;
+    }
+
+    // Настроить получение данных из лекрств групп
+    private List<Pharm> setGroupPharm(String json, String link) {
+        JSONObject jsonOb = new JSONObject(json);
+        List<Pharm> pharmFromGroup = new ArrayList<>();
+        Pharm pharm = new Pharm();
+        Document document = getDoc(link);
+        JSONArray jsonArray = jsonOb.getJSONArray("itemInfos");
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject nestedProduct = jsonArray.getJSONObject(i);
+            pharm.setId(nestedProduct.getString("id"));
+            pharm.setProducerPharm(nestedProduct.getString("vendor"));
+            pharm.setTitle(nestedProduct.getString("name"));
+            pharm.setActiveSubstance(document.getElementsByClass("ux-commas").get(0).children().get(0).text());
+            pharm.setPrice(getPrice(link));
+            pharm.setExplanation(nestedProduct.getString("indic"));
+            pharm.setDelivery(isDelivered(document));
+            pharm.setLink(link);
+            pharmFromGroup.add(pharm);
+        }
+        return pharmFromGroup;
     }
 
     public Document seleniumParse(String link) throws InterruptedException, IOException {
@@ -179,9 +215,11 @@ public class AptekaRuParser {
     }
 
     private Document getDoc(String link) {
+        System.out.println(link);
         try {
             return Jsoup.connect(link)
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 OPR/89.0.4447.71")
+                    .timeout(100000)
                     .get();
         } catch (IOException e) {
             log.debug(e.getMessage());
@@ -195,11 +233,13 @@ public class AptekaRuParser {
         ChromeOptions chromeOptions = new ChromeOptions();
         WebDriver webDriver = new ChromeDriver(chromeOptions);
         webDriver.get(link);
+        (new WebDriverWait(webDriver, Duration.ofSeconds(5)))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.className("TownSelector__input")));
         webDriver.findElement(By.xpath("//*[@id=\"search-city\"]")).sendKeys(city);
-        WebElement afterClick = (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
+        WebElement afterClick = (new WebDriverWait(webDriver, Duration.ofSeconds(20)))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.xpath(String.format("//strong[starts-with(text(), '%s')]", city))));
         afterClick.click();
-        (new WebDriverWait(webDriver, Duration.ofSeconds(10)))
+        (new WebDriverWait(webDriver, Duration.ofSeconds(20)))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.className("NotifyCitychange")));
         Document document = Jsoup.parse(webDriver.getPageSource());
         webDriver.close();
