@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Data
 public class PharmDto {
-    Long id;
+    String id;
     Boolean delivery;
     String title;
     LocalDate expirationDate;

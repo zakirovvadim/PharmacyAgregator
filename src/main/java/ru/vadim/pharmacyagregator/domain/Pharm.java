@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Pharm {
     @Id
-    Long id;
+    String id;
     Boolean delivery;
     String title;
     LocalDate expirationDate;
