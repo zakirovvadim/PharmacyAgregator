@@ -45,17 +45,17 @@ public class AptekaRuParser {
 
     private final PharmacyTypeService pharmacyTypeService;
 
-    public void parse(String link) throws IOException, InterruptedException, NotFoundException {
+    public List<Pharm> parse(String link) throws IOException, InterruptedException, NotFoundException {
         Document doc = seleniumParse(link);
         Elements el = doc.select("div.SidebarCategoriesList > ul");
-       List<Pharm> parsedPharm = null;
+        List<Pharm> parsedPharm = null;
         for (Element element : el.get(0).children()) {
-            parsedPharm = parseEveryCatalog1("https://apteka.ru" + element.child(0).attr("href"), "div.ViewRootCategory__subcat");
+            parsedPharm = parseEveryCatalog("https://apteka.ru" + element.child(0).attr("href"), "div.ViewRootCategory__subcat");
         }
-        //System.out.println(parsedPharm);
+        return parsedPharm;
     }
 
-    public List<Pharm> parseEveryCatalog1(String link, String query) throws IOException, NotFoundException {
+    public List<Pharm> parseEveryCatalog(String link, String query) throws IOException, NotFoundException {
         Document doc = getDoc(link);
         PharmacyType currentType = pharmacyTypeService.findById(getTypeNumber(link));
         Elements innerCatalog = doc.select(query).get(0).children();
